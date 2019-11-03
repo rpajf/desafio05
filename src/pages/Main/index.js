@@ -10,6 +10,7 @@ export default class Main extends Component {
     newRepo: '',
     repositories: [],
     loading: false,
+    error: false,
   };
 
   componentDidMount() {
@@ -32,31 +33,48 @@ export default class Main extends Component {
 
   handleInputChange = e => {
     this.setState({ newRepo: e.target.value });
+    const { error } = this.state;
+    if ({ error }) {
+      this.setState({ error: false });
+    }
   };
 
   handleSubmit = async e => {
     e.preventDefault();
     this.setState({ loading: true });
 
-    const { newRepo, repositories } = this.state;
-    const response = await api.get(`/repos/${newRepo}`);
-    const data = {
-      name: response.data.full_name,
-    };
-    this.setState({
-      repositories: [...repositories, data],
-      /* toda vez que o user adicionar um
+    try {
+      const { newRepo, repositories } = this.state;
+      const response = await api.get(`/repos/${newRepo}`);
+
+      const data = {
+        name: response.data.full_name,
+      };
+
+      repositories.map(rep => {
+        if (rep.name === data.name) {
+          throw new Error('Repositório duplicado');
+        }
+      });
+
+      this.setState({
+        repositories: [...repositories, data],
+        /* toda vez que o user adicionar um
       repositório, um novo vetor é criado
       baseado no vetor que já existe de repositórios
 
        */
-      newRepo: '',
-      loading: false,
-    });
+        newRepo: '',
+        loading: false,
+      });
+    } catch (error) {
+      console.log(error);
+      this.setState({ error: true, loading: false });
+    }
   };
 
   render() {
-    const { newRepo, repositories, loading } = this.state;
+    const { newRepo, repositories, loading, error } = this.state;
     return (
       <Container>
         <h1>
@@ -64,7 +82,7 @@ export default class Main extends Component {
           Repositórios
         </h1>
 
-        <Form onSubmit={this.handleSubmit}>
+        <Form onSubmit={this.handleSubmit} error={error ? 1 : 0}>
           <input
             type="text"
             placeholder="Adicionar Repositório"
